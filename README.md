@@ -221,7 +221,7 @@ If you try it, start small: one Markdown file with your most-asked internal ques
 
 ## Documentation
 
-[Red Hat OpenShift Lightspeed — BYO Knowledge documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html-single/configure/index)
+[Red Hat OpenShift Lightspeed — BYO Knowledge documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_lightspeed/1.0/html-single/configure/index#about-the-byo-knowledge-tool_ols-configuring-openshift-lightspeed)
 
 ## Status
 
