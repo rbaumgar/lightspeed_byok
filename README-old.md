@@ -11,7 +11,7 @@ Imagine your organization has these internal rules:
 * Routes must use TLS.
 * The organization uses a specific StorageClass.
 
-You could create a Markdown document such as [demo](/docs/general.md)
+You could create a Markdown document such as [demo](/byok/general.md)
 
 ### What this enables
 
@@ -42,7 +42,7 @@ Create one or more `.md` files containing your organization's knowledge.
 For example:
 
 ```text
-my-knowledge/
+byok/
 ├── production-standards.md
 ├── troubleshooting.md
 └── deployment-sop.md
@@ -93,13 +93,13 @@ This is the part that actually **creates the RAG database**.
 Suppose your Markdown is in:
 
 ```text
-/home/user/my-knowledge
+byok
 ```
 
-and you want the generated image TAR in:
+and you want the generated the Vector.db in:
 
 ```text
-/home/user/byok-output
+output
 ```
 
 Run:
@@ -107,54 +107,46 @@ Run:
 ```bash
 MYDIR=`pwd`
 mkdir $MYDIR/output
-podman run -it --rm --device=/dev/fuse \
-  -v $XDG_RUNTIME_DIR/containers/auth.json:/run/user/0/containers/auth.json:Z \
-  -v $MYDIR/my-knowledge:/markdown:Z \
-  -v $MYDIR/output:/output:Z \
-  registry.redhat.io/openshift-lightspeed-tech-preview/lightspeed-rag-tool-rhel9:latest
+podman run --rm \
+  -v $MYDIR/byok:/markdown:ro,Z \
+  -v $MYDIR/output:/workdir/output:Z \
+  --entrypoint python3.12 \
+  registry.redhat.io/openshift-lightspeed-tech-preview/lightspeed-rag-tool-rhel9:latest \
+  generate_embeddings_tool.py \
+    -i /markdown \
+    -emd embeddings_model \
+    -emn sentence-transformers/all-mpnet-base-v2 \
+    -o /output \
+    -id vector_db_index  
 ```
 
-The tool processes your Markdown and creates a container image containing the RAG database. This is the official Red Hat procedure. ([Red Hat Documentation][3])
+The tool processes your Markdown and creates the Vector.db files.
 
-### 4. Load the generated image
+```bash
+Arguments used: Namespace(input_dir='/markdown', embedding_model_dir='embeddings_model', embedding_model_name='sentence-transformers/all-mpnet-base-v2', chunk_size=380, chunk_overlap=0, output_dir='/output', index_id='vector_db_index')
+2026-08-19 13:40:27,747 - INFO - Loading SentenceTransformer model from embeddings_model.
+LLM is explicitly disabled. Using MockLLM.
+file_path: /markdown/gateway.md, title: ACME Gateway API Troubleshooting, docs_url: https://docs.acme.example/openshift/gateway
+file_path: /markdown/general.md, title: ACME Production Deployment Standards, docs_url: https://docs.acme.example/openshift/production
+
+$ ls -l output
+total 36
+-rw-r--r--. 1 demo demo 9261 19. Aug 15:40 default__vector_store.json
+-rw-r--r--. 1 demo demo 7739 19. Aug 15:40 docstore.json
+-rw-r--r--. 1 demo demo   18 19. Aug 15:40 graph_store.json
+-rw-r--r--. 1 demo demo   72 19. Aug 15:40 image__vector_store.json
+-rw-r--r--. 1 demo demo  352 19. Aug 15:40 index_store.json
+-rw-r--r--. 1 demo demo  267 19. Aug 15:40 metadata.json
+```
+
+### 4. Generate the RAG image and push it
 
 The tool produces an image TAR in your output directory.
 
-Load it:
-
-```bash
-podman load < $MYDIR/output/my-byok-image.tar
-```
-
-Then check:
-
-```bash
-podman images
-```
-
-You should see something similar to:
-
-```text
-REPOSITORY              TAG       IMAGE ID
-localhost/my-byok-image latest    be7d1770bf10
-```
-
-### 5. Tag it for your registry
-
-For example, using Quay:
-
-```bash
-QUAY_USER=rbaumgar
-podman tag \
-  localhost/my-byok-image:latest \
-  quay.io/$QUAY_USER/openshift-lightspeed-knowledge:latest
-```
-
-Then push it:
-
-```bash
-podman push \
-  quay.io/$QUAY_USER/openshift-lightspeed-knowledge:latest
+```shell
+echo -e 'FROM registry.access.redhat.com/ubi9/ubi-minimal\nCOPY . /rag/vector_db' | \
+  podman build -t quay.io/rbaumgar/my-byok-image:latest -f - $MYDIR/output/
+podman push quay.io/rbaumgar/my-byok-image:latest
 ```
 
 At this point your custom knowledge RAG is available as a container image. ([Red Hat Documentation][3])
