@@ -1,0 +1,74 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: ols-byok-pipeline
+  namespace: ${NAMESPACE}
+spec:
+  params:
+    - name: docs-repo-url
+    - name: docs-repo-revision
+      default: main
+    - name: target-image
+  workspaces:
+    - name: shared
+    - name: dockerconfig
+  tasks:
+    - name: git-clone
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: git-clone
+          - name: namespace
+            value: openshift-pipelines
+      params:
+        - name: URL
+          value: $(params.docs-repo-url)
+        - name: REVISION
+          value: $(params.docs-repo-revision)
+        - name: SUBDIRECTORY
+          value: docs
+        - name: DEPTH
+          value: "1"
+        - name: DELETE_EXISTING
+          value: "true"
+      workspaces:
+        - { name: output, workspace: shared }
+
+    - name: generate-embeddings
+      runAfter: [git-clone]
+      taskRef: { name: generate-embeddings }
+      workspaces:
+        - { name: source, workspace: shared }
+        - { name: output, workspace: shared }
+
+    - name: build-and-push
+      taskRef:
+        params:
+        - name: kind
+          value: task
+        - name: name
+          value: buildah
+        - name: namespace
+          value: openshift-pipelines
+        resolver: cluster
+      params:
+      - name: IMAGE
+        value: $(params.target-image)
+      - name: DOCKERFILE
+        value: ./Containerfile
+      - name: CONTEXT
+        value: $(workspaces.source.path)/out
+      runAfter:
+      - generate-embeddings
+      workspaces:
+        - { name: source, workspace: shared }      
+
+    - name: patch-config
+      runAfter: [build-and-push]
+      taskRef: { name: patch-olsconfig }
+      params:
+        - name: image
+          value: $(params.target-image)

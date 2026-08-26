@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: ols-byok-run-
+  namespace: ${NAMESPACE}
+spec:
+  pipelineRef:
+    name: ols-byok-pipeline
+  params:
+    - name: docs-repo-url
+      value: ${DOCS_GIT_URL}
+    - name: docs-repo-revision
+      value: ${DOCS_GIT_REVISION}
+    - name: target-image
+      value: ${TARGET_IMAGE}
+  workspaces:
+    - name: shared
+      persistentVolumeClaim:
+        claimName: ols-byok-shared-pvc
+    - name: dockerconfig
+      secret:
+        secretName: registry-push-secret

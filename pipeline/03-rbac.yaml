@@ -1,0 +1,22 @@
+# OLSConfig is cluster-scoped; the pipeline SA needs a ClusterRole to patch it.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ols-byok-config-editor
+rules:
+  - apiGroups: ["ols.openshift.io"]
+    resources: ["olsconfigs"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ols-byok-config-editor-binding
+subjects:
+  - kind: ServiceAccount
+    name: ols-byok-pipeline-sa
+    namespace: ${NAMESPACE}
+roleRef:
+  kind: ClusterRole
+  name: ols-byok-config-editor
+  apiGroup: rbac.authorization.k8s.io

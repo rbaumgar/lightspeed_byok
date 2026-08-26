@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: patch-olsconfig
+  namespace: ${NAMESPACE}
+spec:
+  params:
+    - name: ols-config-name
+      default: cluster
+    - name: image
+    - name: index-id
+      default: vector_db_index
+    - name: index-path
+      default: /rag/vector_db
+  steps:
+    - name: patch
+      image: registry.redhat.io/openshift4/ose-cli:latest
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        oc patch olsconfig $(params.ols-config-name) \
+          --type=json \
+          -p='[{"op":"add","path":"/spec/ols/rag/-","value":{"image":"$(params.image)","indexID":"$(params.index-id)","indexPath":"$(params.index-path)"}}]'

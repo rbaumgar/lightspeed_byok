@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: generate-embeddings
+  namespace: ${NAMESPACE}
+spec:
+  workspaces:
+  - mountPath: /markdown
+    name: source
+  - mountPath: /workdir/output
+    name: output
+  steps:
+    - name: generate-embeddings
+      image: registry.redhat.io/openshift-lightspeed-tech-preview/lightspeed-rag-tool-rhel9:latest
+      script: |
+        #!/usr/bin/env bash
+        set -x
+        set -euo pipefail
+        rm -rf /workdir/output/out
+        mkdir -p $(workspaces.output.path)/out
+        
+        echo "Generating embeddings from source: $(workspaces.source.path)/docs/byok"
+        python3.12 generate_embeddings_tool.py \
+          -i /markdown/docs/byok \
+          -emd embeddings_model \
+          -emn sentence-transformers/all-mpnet-base-v2 \
+          -o /output/out \
+          -id vector_db_index
+        
+        echo "Generating completed."
+        ls -lR /workdir/output/
