@@ -14,10 +14,10 @@ spec:
       image: registry.redhat.io/openshift-lightspeed-tech-preview/lightspeed-rag-tool-rhel9:latest
       script: |
         #!/usr/bin/env bash
-        set -x
+        # set -x
         set -euo pipefail
         rm -rf /workdir/output/out
-        mkdir -p $(workspaces.output.path)/out
+        mkdir -p /workdir/output/out
         
         echo "Generating embeddings from source: $(workspaces.source.path)/docs/byok"
         python3.12 generate_embeddings_tool.py \
@@ -28,4 +28,4 @@ spec:
           -id vector_db_index
         
         echo "Generating completed."
-        ls -lR /workdir/output/
+        ls -lR /workdir/output/out

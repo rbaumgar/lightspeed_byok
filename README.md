@@ -100,6 +100,9 @@ podman run --rm \
     -id vector_db_index
 ```
 
+Currently image tag: latest=1.1.4 does not work. Use 1.1.3. 
+Error: `ModuleNotFoundError: No module named 'faiss'`
+
 You'll see the tool chunk and embed each document:
 
 ```text

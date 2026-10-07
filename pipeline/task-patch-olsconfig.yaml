@@ -18,6 +18,11 @@ spec:
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
+        # set -x
+        echo "Patching OLSConfig $(params.ols-config-name) with image $(params.image), indexID $(params.index-id), indexPath $(params.index-path)"
+        oc whoami
+        echo "Current OLSConfig:"
+        oc get olsconfig $(params.ols-config-name) -o yaml
         oc patch olsconfig $(params.ols-config-name) \
           --type=json \
           -p='[{"op":"add","path":"/spec/ols/rag/-","value":{"image":"$(params.image)","indexID":"$(params.index-id)","indexPath":"$(params.index-path)"}}]'
